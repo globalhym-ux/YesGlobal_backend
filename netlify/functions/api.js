@@ -201,19 +201,19 @@ exports.handler = async (event) => {
         // ==========================================
         const smtpPort = parseInt(process.env.SMTP_PORT, 10) || 465;
 
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'mail.yesglobal.com', // Aapka company mail server
-            port: smtpPort,
-            secure: smtpPort === 465,                             // 465 ke liye true, 587 ke liye false
+       const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || 'mail.yesglobal.com',
+            port: 587,              // 👈 465 ki jagah 587 karein
+            secure: false,          // 👈 587 ke liye hamesha FALSE hota hai (STARTTLS)
             auth: {
-                user: process.env.EMAIL_USER,                     // Company email (e.g. info@yesglobal.com)
-                pass: process.env.EMAIL_PASS,                     // Company email ka asil password
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
             },
             tls: {
-                rejectUnauthorized: false                         // Hosting SSL certificates issue roknay ke liye
-            }
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 15000 // 15 seconds timeout
         });
-
         const recipientEmail = process.env.RECEIVER_EMAIL || process.env.EMAIL_USER;
 
         const mailOptions = {
