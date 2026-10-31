@@ -199,52 +199,49 @@ exports.handler = async (event) => {
         // ==========================================
         // 🚀 4. NODEMAILER (COMPANY EMAIL CUSTOM SMTP)
         // ==========================================
+        // ==========================================
+        // 🚀 NAMECHEAP PRIVATE EMAIL SMTP ENGINE
+        // ==========================================
         const smtpPort = parseInt(process.env.SMTP_PORT, 10) || 465;
 
-       const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'mail.yesglobal.com',
-            port: 587,              // 👈 465 ki jagah 587 karein
-            secure: false,          // 👈 587 ke liye hamesha FALSE hota hai (STARTTLS)
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || 'mail.privateemail.com',
+            port: smtpPort,
+            secure: smtpPort === 465, // 465 ke liye true hota hai
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
             },
             tls: {
                 rejectUnauthorized: false
-            },
-            connectionTimeout: 15000 // 15 seconds timeout
+            }
         });
+
         const recipientEmail = process.env.RECEIVER_EMAIL || process.env.EMAIL_USER;
 
         const mailOptions = {
-            from: `"YesGlobal Website" <${process.env.EMAIL_USER}>`,
+            from: `"YesGlobal" <${process.env.EMAIL_USER}>`,
             to: recipientEmail,
             replyTo: cleanEmail || process.env.EMAIL_USER,
             subject: `New Inquiry from ${cleanName}: ${subject || 'Contact Form'}`,
             html: `
-                <div style="font-family: Arial, sans-serif; padding: 25px; border: 1px solid #e5e7eb; border-radius: 8px; max-width: 600px; color: #1f2937;">
+                <div style="font-family: Arial, sans-serif; padding: 25px; border: 1px solid #e5e7eb; border-radius: 8px;">
                     <div style="background: #009876; color: white; padding: 15px; text-align: center; border-radius: 6px; margin-bottom: 20px;">
                         <h2 style="margin: 0; text-transform: uppercase;">New Website Inquiry</h2>
                     </div>
-                    
-                    <p style="margin: 8px 0;"><strong>Name:</strong> ${cleanName}</p>
-                    <p style="margin: 8px 0;"><strong>Email:</strong> ${cleanEmail ? `<a href="mailto:${cleanEmail}">${cleanEmail}</a>` : 'Not provided'}</p>
-                    <p style="margin: 8px 0;"><strong>Phone:</strong> ${cleanPhone || 'Not provided'}</p>
-                    <p style="margin: 8px 0;"><strong>Visitor ID:</strong> ${visitor_id || 'N/A'}</p>
-                    
-                    <p style="margin: 16px 0 8px 0;"><strong>Message:</strong></p>
-                    <div style="background: #f9fafb; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb; white-space: pre-line; line-height: 1.6;">
-                        ${message || 'No additional message details.'}
+                    <p><strong>Name:</strong> ${cleanName}</p>
+                    <p><strong>Email:</strong> ${cleanEmail ? `<a href="mailto:${cleanEmail}">${cleanEmail}</a>` : 'Not provided'}</p>
+                    <p><strong>Phone:</strong> ${cleanPhone || 'Not provided'}</p>
+                    <p><strong>Visitor ID:</strong> ${visitor_id || 'N/A'}</p>
+                    <p><strong>Message:</strong></p>
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 6px;">
+                        ${message || 'No additional details.'}
                     </div>
-
-                    <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0 10px;" />
-                    <p style="font-size: 11px; color: #9ca3af; text-align: center; margin: 0;">
-                        This inquiry was submitted from the YesGlobal website.
-                    </p>
                 </div>
             `,
         };
 
+       
         await transporter.sendMail(mailOptions);
 
         return {
