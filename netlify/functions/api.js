@@ -1,8 +1,9 @@
+
 // const nodemailer = require('nodemailer');
 // const { createClient } = require('@supabase/supabase-js');
 
 // // 1. Supabase Initialization
-// const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pzrmkiawjawjwuyjwmeo.supabase.co'; // 👈 Apna Supabase URL
+// const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pzrmkiawjawjwuyjwmeo.supabase.co';
 // const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 
 // let supabase = null;
@@ -68,47 +69,51 @@
 //         }
 
 //         // ==========================================
-//         // 🚀 4. NODEMAILER EMAIL SENDING
+//         // 🚀 4. NODEMAILER (COMPANY EMAIL CUSTOM SMTP)
 //         // ==========================================
+//         // ==========================================
+//         // 🚀 NAMECHEAP PRIVATE EMAIL SMTP ENGINE
+//         // ==========================================
+//         const smtpPort = parseInt(process.env.SMTP_PORT, 10) || 465;
+
 //         const transporter = nodemailer.createTransport({
-//             service: 'gmail',
+//             host: process.env.SMTP_HOST || 'mail.privateemail.com',
+//             port: smtpPort,
+//             secure: smtpPort === 465, // 465 ke liye true hota hai
 //             auth: {
 //                 user: process.env.EMAIL_USER,
 //                 pass: process.env.EMAIL_PASS,
 //             },
+//             tls: {
+//                 rejectUnauthorized: false
+//             }
 //         });
 
 //         const recipientEmail = process.env.RECEIVER_EMAIL || process.env.EMAIL_USER;
 
 //         const mailOptions = {
-//             from: `"YesGlobal Website" <${process.env.EMAIL_USER}>`,
+//             from: `"YesGlobal" <${process.env.EMAIL_USER}>`,
 //             to: recipientEmail,
 //             replyTo: cleanEmail || process.env.EMAIL_USER,
 //             subject: `New Inquiry from ${cleanName}: ${subject || 'Contact Form'}`,
 //             html: `
-//                 <div style="font-family: Arial, sans-serif; padding: 25px; border: 1px solid #e5e7eb; border-radius: 8px; max-width: 600px; color: #1f2937;">
+//                 <div style="font-family: Arial, sans-serif; padding: 25px; border: 1px solid #e5e7eb; border-radius: 8px;">
 //                     <div style="background: #009876; color: white; padding: 15px; text-align: center; border-radius: 6px; margin-bottom: 20px;">
 //                         <h2 style="margin: 0; text-transform: uppercase;">New Website Inquiry</h2>
 //                     </div>
-                    
-//                     <p style="margin: 8px 0;"><strong>Name:</strong> ${cleanName}</p>
-//                     <p style="margin: 8px 0;"><strong>Email:</strong> ${cleanEmail ? `<a href="mailto:${cleanEmail}">${cleanEmail}</a>` : 'Not provided'}</p>
-//                     <p style="margin: 8px 0;"><strong>Phone:</strong> ${cleanPhone || 'Not provided'}</p>
-//                     <p style="margin: 8px 0;"><strong>Visitor ID:</strong> ${visitor_id || 'N/A'}</p>
-                    
-//                     <p style="margin: 16px 0 8px 0;"><strong>Message:</strong></p>
-//                     <div style="background: #f9fafb; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb; white-space: pre-line; line-height: 1.6;">
-//                         ${message || 'No additional message details.'}
+//                     <p><strong>Name:</strong> ${cleanName}</p>
+//                     <p><strong>Email:</strong> ${cleanEmail ? `<a href="mailto:${cleanEmail}">${cleanEmail}</a>` : 'Not provided'}</p>
+//                     <p><strong>Phone:</strong> ${cleanPhone || 'Not provided'}</p>
+//                     <p><strong>Visitor ID:</strong> ${visitor_id || 'N/A'}</p>
+//                     <p><strong>Message:</strong></p>
+//                     <div style="background: #f9fafb; padding: 15px; border-radius: 6px;">
+//                         ${message || 'No additional details.'}
 //                     </div>
-
-//                     <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0 10px;" />
-//                     <p style="font-size: 11px; color: #9ca3af; text-align: center; margin: 0;">
-//                         This inquiry was submitted from the YesGlobal website.
-//                     </p>
 //                 </div>
 //             `,
 //         };
 
+       
 //         await transporter.sendMail(mailOptions);
 
 //         return {
@@ -126,7 +131,7 @@
 //         };
 //     }
 // };
-//new data
+
 const nodemailer = require('nodemailer');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -140,28 +145,19 @@ if (SUPABASE_URL && SUPABASE_KEY) {
 }
 
 exports.handler = async (event) => {
-    // 2. CORS Headers (Localhost + Live Website dono ke liye completely open)
+    // 2. CORS Headers (Never block frontend)
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type, Accept, Authorization',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     };
 
-    // Preflight (Browser ka pehla test check)
     if (event.httpMethod === "OPTIONS") {
-        return {
-            statusCode: 200,
-            headers,
-            body: ''
-        };
+        return { statusCode: 200, headers, body: '' };
     }
 
     if (event.httpMethod !== "POST") {
-        return { 
-            statusCode: 405, 
-            headers,
-            body: JSON.stringify({ error: "Method Not Allowed" }) 
-        };
+        return { statusCode: 405, headers, body: JSON.stringify({ error: "Method Not Allowed" }) };
     }
 
     try {
@@ -173,7 +169,7 @@ exports.handler = async (event) => {
         const cleanPhone = phone && phone.trim() !== '' ? phone.trim() : null;
 
         // ==========================================
-        // 🚀 3. SUPABASE DATABASE MEIN LEAD SAVE KARNA
+        // 🚀 1. SUPABASE  (ALWAYS FIRST)
         // ==========================================
         if (supabase) {
             try {
@@ -185,73 +181,83 @@ exports.handler = async (event) => {
                             name: cleanName,
                             email: cleanEmail,
                             phone: cleanPhone,
-                            subject: subject || 'General Website Inquiry',
+                            subject: subject || 'Website Contact Form',
                             message: message || '',
                             all_fields: data
                         }
                     ]);
-                console.log('✅ Lead saved to Supabase (yg_contact_leads)');
+                console.log('✅ Lead saved successfully to Supabase');
             } catch (dbErr) {
-                console.error('Database save non-fatal error:', dbErr);
+                console.error('Database save non-fatal error:', dbErr.message);
             }
         }
 
         // ==========================================
-        // 🚀 4. NODEMAILER (COMPANY EMAIL CUSTOM SMTP)
+        // 🚀 2. EMAIL DISPATCH (FAIL-SAFE TRY/CATCH)
         // ==========================================
-        // ==========================================
-        // 🚀 NAMECHEAP PRIVATE EMAIL SMTP ENGINE
-        // ==========================================
-        const smtpPort = parseInt(process.env.SMTP_PORT, 10) || 465;
+        let emailSuccess = false;
+        try {
+            const smtpHost = (process.env.SMTP_HOST || 'mail.yesglobal.group').trim();
+            const smtpPort = parseInt(process.env.SMTP_PORT, 10) || 465;
 
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'mail.privateemail.com',
-            port: smtpPort,
-            secure: smtpPort === 465, // 465 ke liye true hota hai
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            tls: {
-                rejectUnauthorized: false
-            }
-        });
+            const transporter = nodemailer.createTransport({
+                host: smtpHost,
+                port: smtpPort,
+                secure: smtpPort === 465,
+                auth: {
+                    user: (process.env.EMAIL_USER || '').trim(),
+                    pass: (process.env.EMAIL_PASS || '').trim(),
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
 
-        const recipientEmail = process.env.RECEIVER_EMAIL || process.env.EMAIL_USER;
+            const recipientEmail = (process.env.RECEIVER_EMAIL || process.env.EMAIL_USER || 'info@yesglobal.group').trim();
 
-        const mailOptions = {
-            from: `"YesGlobal" <${process.env.EMAIL_USER}>`,
-            to: recipientEmail,
-            replyTo: cleanEmail || process.env.EMAIL_USER,
-            subject: `New Inquiry from ${cleanName}: ${subject || 'Contact Form'}`,
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 25px; border: 1px solid #e5e7eb; border-radius: 8px;">
-                    <div style="background: #009876; color: white; padding: 15px; text-align: center; border-radius: 6px; margin-bottom: 20px;">
-                        <h2 style="margin: 0; text-transform: uppercase;">New Website Inquiry</h2>
+            const mailOptions = {
+                from: `"YesGlobal Website" <${(process.env.EMAIL_USER || 'info@yesglobal.group').trim()}>`,
+                to: recipientEmail,
+                replyTo: cleanEmail || recipientEmail,
+                subject: `New Inquiry from ${cleanName}: ${subject || 'Contact Form'}`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 25px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                        <h2 style="color: #009876; margin-top: 0;">New Website Inquiry</h2>
+                        <p><strong>Name:</strong> ${cleanName}</p>
+                        <p><strong>Email:</strong> ${cleanEmail ? `<a href="mailto:${cleanEmail}">${cleanEmail}</a>` : 'Not provided'}</p>
+                        <p><strong>Phone:</strong> ${cleanPhone || 'Not provided'}</p>
+                        <p><strong>Visitor ID:</strong> ${visitor_id || 'N/A'}</p>
+                        <p><strong>Message:</strong></p>
+                        <div style="background: #f9fafb; padding: 15px; border-radius: 6px;">
+                            ${message || 'No additional details.'}
+                        </div>
                     </div>
-                    <p><strong>Name:</strong> ${cleanName}</p>
-                    <p><strong>Email:</strong> ${cleanEmail ? `<a href="mailto:${cleanEmail}">${cleanEmail}</a>` : 'Not provided'}</p>
-                    <p><strong>Phone:</strong> ${cleanPhone || 'Not provided'}</p>
-                    <p><strong>Visitor ID:</strong> ${visitor_id || 'N/A'}</p>
-                    <p><strong>Message:</strong></p>
-                    <div style="background: #f9fafb; padding: 15px; border-radius: 6px;">
-                        ${message || 'No additional details.'}
-                    </div>
-                </div>
-            `,
-        };
+                `,
+            };
 
-       
-        await transporter.sendMail(mailOptions);
+            await transporter.sendMail(mailOptions);
+            emailSuccess = true;
+            console.log('✅ Email successfully sent to:', recipientEmail);
+        } catch (mailError) {
+            console.error('Email sending failed (Saved to Supabase anyway):', mailError.message);
+            // ⚠️ Yahan hum throw nahi karenge taake customer ko 500 error na dikhe!
+        }
 
+        // ==========================================
+        // 🚀 3. CUSTOMER KO SUCCESS RESPONSE DENA
+        // ==========================================
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ status: "success", message: "Inquiry sent and saved successfully!" }),
+            body: JSON.stringify({ 
+                status: "success", 
+                message: "Thank you! Your inquiry has been received.",
+                emailSent: emailSuccess 
+            }),
         };
 
     } catch (error) {
-        console.error("Function Error:", error);
+        console.error("Critical Function Error:", error);
         return {
             statusCode: 500,
             headers,
